@@ -6,6 +6,7 @@ on:
     paths:
       - "client/**"
       - "docker-compose.yml"
+      - ".github/workflows/client-deploy.yml"
 
 jobs:
   deploy-client:
