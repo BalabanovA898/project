@@ -1,0 +1,21 @@
+services:
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    container_name: queue_frontend_dev
+    ports:
+      - "8080:80"
+    restart: always
+    networks:
+      - queue_network
+
+  backend:
+    image: alpine
+    command: ["watch", "-n", "10", "echo hello"]
+    networks:
+      - queue_network
+
+networks:
+  queue_network:
+    driver: bridge

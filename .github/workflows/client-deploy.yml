@@ -1,0 +1,22 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "client/**"
+      - "docker-compose.yml"
+
+jobs:
+  deploy-client:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and Update Frontend
+        run: |
+          docker-compose up -d --build frontend
+
+      - name: Cleanup
+        run: docker image prune -f
