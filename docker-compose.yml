@@ -15,6 +15,7 @@ services:
     command: ["watch", "-n", "10", "echo hello"]
     networks:
       - queue_network
+    restart: always
 
 networks:
   queue_network:
