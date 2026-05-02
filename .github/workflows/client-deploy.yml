@@ -16,7 +16,7 @@ jobs:
 
       - name: Build and Update Frontend
         run: |
-          docker-compose up -d --build frontend
+          docker compose up -d --build frontend
 
       - name: Cleanup
         run: docker image prune -f
