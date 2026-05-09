@@ -1,0 +1,657 @@
+openapi: 3.0.3
+info:
+  title: Queue & Team Management API
+  description: API для управления очередями, командами и сессиями (RPC-over-REST included 😎)
+  version: 1.0.1
+
+tags:
+  - name: Auth
+    description: Регистрация, логин и токены
+  - name: Users
+    description: Управление профилем пользователя
+  - name: Teams
+    description: Группировка в команды
+  - name: Queues
+    description: Глобальные настройки очередей
+  - name: Sessions
+    description: Подочереди и сессии приема
+  - name: Entries
+    description: Билетики и управление FSM очереди
+
+paths:
+  # ================= AUTH =================
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Регистрация нового пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegisterDTO"
+      responses:
+        "201":
+          description: Успешная регистрация
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponseDTO"
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Вход в систему
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserLoginDTO"
+      responses:
+        "200":
+          description: Успешный логин
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponseDTO"
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Обновление токенов
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshDTO"
+      responses:
+        "200":
+          description: Новая пара токенов
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponseDTO"
+
+  # ================= USERS =================
+  /api/v1/users/{id}:
+    get:
+      tags: [Users]
+      summary: Получить профиль студента
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      responses:
+        "200":
+          description: Профиль пользователя
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreviewDTO"
+    patch:
+      tags: [Users]
+      summary: Обновить настройки профиля
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPatchDTO"
+      responses:
+        "200":
+          description: Профиль обновлен
+
+  # ================= TEAMS =================
+  /api/v1/teams:
+    post:
+      tags: [Teams]
+      summary: Создать команду
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTeamDTO"
+      responses:
+        "201":
+          description: Команда создана (возвращает объект с id)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamDTO"
+
+  /api/v1/teams/{id}:
+    get:
+      tags: [Teams]
+      summary: Посмотреть состав команды
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      responses:
+        "200":
+          description: Состав команды
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamDTO"
+
+  /api/v1/teams/{id}/join:
+    post:
+      tags: [Teams]
+      summary: Присоединиться к команде
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      responses:
+        "200":
+          description: Успешно присоединился
+
+  /api/v1/teams/{id}/leave:
+    post:
+      tags: [Teams]
+      summary: Покинуть команду
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      responses:
+        "200":
+          description: Успешно покинул
+
+  # ================= QUEUES =================
+  /api/v1/queues:
+    get:
+      tags: [Queues]
+      summary: Список активных очередей пользователя
+      responses:
+        "200":
+          description: Список очередей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QueueDTO"
+    post:
+      tags: [Queues]
+      summary: Создать новую очередь
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueueCreateDTO"
+      responses:
+        "201":
+          description: Очередь создана (возвращает объект с id)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueueDTO"
+
+  /api/v1/queues/{id}:
+    get:
+      tags: [Queues]
+      summary: Получить инфу по очереди
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      responses:
+        "200":
+          description: Инфа об очереди
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueueDTO"
+    patch:
+      tags: [Queues]
+      summary: Изменить настройки/статус очереди
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueueDTO"
+      responses:
+        "200":
+          description: Очередь обновлена
+
+  /api/v1/queues/{id}/members:
+    get:
+      tags: [Queues]
+      summary: Получить участников очереди
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      responses:
+        "200":
+          description: Участники
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueueMembersDTO"
+
+  /api/v1/queues/{id}/join:
+    post:
+      tags: [Queues]
+      summary: Присоединиться как ученик
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      responses:
+        "200":
+          description: Вы в очереди
+
+  /api/v1/queues/{id}/join-as-teacher:
+    post:
+      tags: [Queues]
+      summary: Присоединиться как проверяющий (препод)
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      responses:
+        "200":
+          description: Вы проверяющий
+
+  /api/v1/queues/{id}/leave:
+    post:
+      tags: [Queues]
+      summary: Покинуть очередь
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      responses:
+        "200":
+          description: Покинули очередь
+
+  # ================= SESSIONS =================
+  /api/v1/queues/{queue_id}/sessions:
+    get:
+      tags: [Sessions]
+      summary: Получить сессии на конкретный день
+      parameters:
+        - name: queue_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Список сессий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SessionDTO"
+    post:
+      tags: [Sessions]
+      summary: Создать сессию
+      parameters:
+        - name: queue_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionCreateDTO"
+      responses:
+        "201":
+          description: Сессия создана (возвращает объект с id)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDTO"
+
+  /api/v1/sessions/{id}:
+    patch:
+      tags: [Sessions]
+      summary: Изменить статус сессии (active/paused)
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionPatchDTO"
+      responses:
+        "200":
+          description: Сессия обновлена
+    delete:
+      tags: [Sessions]
+      summary: Удалить сессию
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      responses:
+        "204":
+          description: Успешно удалено
+
+  # ================= ENTRIES =================
+  /api/v1/sessions/{session_id}/entries:
+    get:
+      tags: [Entries]
+      summary: Получить всех, кто сейчас стоит в сессии
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Список билетиков
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EntryDTO"
+    post:
+      tags: [Entries]
+      summary: Встать в очередь (получить билетик)
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [student, team]
+                entry_id:
+                  type: string
+                  format: uuid
+                  description: ID студента или команды, который встает в очередь
+      responses:
+        "201":
+          description: Место в очереди занято (возвращает билетик с id)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryDTO"
+
+  /api/v1/entries/{id}:
+    delete:
+      tags: [Entries]
+      summary: Выйти из очереди (сдать билетик)
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      responses:
+        "204":
+          description: Билетик удален
+
+  # ================= RPC / FSM =================
+  /api/v1/sessions/{session_id}/next:
+    post:
+      tags: [Entries]
+      summary: Вызвать следующего (Препод Action)
+      description: Завершает текущего, зовет следующего (триггерит WebSockets).
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Вызван следующий участник
+
+  /api/v1/entries/{id}/skip:
+    post:
+      tags: [Entries]
+      summary: Пропустить конкретного человека
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      responses:
+        "200":
+          description: Человек пропущен
+
+  /api/v1/entries/{id}/move:
+    post:
+      tags: [Entries]
+      summary: Переместить человека в очереди
+      parameters:
+        - $ref: "#/components/parameters/PathId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                new_position:
+                  type: integer
+                new_session_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Успешно перемещен
+
+components:
+  parameters:
+    PathId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    # --- Auth & Users ---
+    UserRegisterDTO:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        username:
+          type: string
+
+    UserLoginDTO:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    RefreshDTO:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+
+    TokenResponseDTO:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+
+    PreferencePreviewDTO:
+      type: object
+      properties:
+        priority:
+          type: string
+          enum: [high, medium, low, none]
+        unavailableDays:
+          type: string
+
+    UserPreviewDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        preferences:
+          $ref: "#/components/schemas/PreferencePreviewDTO"
+
+    UserPatchDTO:
+      type: object
+      properties:
+        username:
+          type: string
+        preferences:
+          $ref: "#/components/schemas/PreferencePatchDTO"
+
+    PreferencePatchDTO:
+      type: object
+      properties:
+        priority:
+          type: string
+          enum: [high, medium, low, none]
+        unavailableDays:
+          type: string
+
+    # --- Teams ---
+    CreateTeamDTO:
+      type: object
+      properties:
+        name:
+          type: string
+
+    TeamDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        members:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    # --- Queues ---
+    QueueCreateDTO:
+      type: object
+      properties:
+        name:
+          type: string
+        is_admin:
+          type: boolean
+
+    QueueDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        is_admin:
+          type: boolean
+        status:
+          type: string
+          enum: [active, archived]
+
+    QueueMembersDTO:
+      type: object
+      properties:
+        students:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/UserPreviewDTO"
+            total:
+              type: integer
+        teachers:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserPreviewDTO"
+
+    # --- Sessions ---
+    SessionCreateDTO:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+          description: Продолжительность в минутах
+        teacher:
+          type: string
+          format: uuid
+        rankSystem:
+          type: string
+          enum: [credit, score, none]
+        maxScore:
+          type: number
+
+    SessionDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        teacher:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [active, paused, planned]
+
+    SessionPatchDTO:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        teacher:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [active, paused, planned]
+
+    # --- Entries ---
+    EntryDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID самого билетика в очереди
+        type:
+          type: string
+          enum: [student, team]
+        entry_id:
+          type: string
+          format: uuid
+          description: ID студента или команды
