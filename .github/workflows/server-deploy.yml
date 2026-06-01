@@ -1,0 +1,24 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "server/**"
+      - "server/account/**"
+      - "docker-compose.yml"
+      - ".github/workflows/server-deploy.yml"
+
+jobs:
+  deploy-server:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and Update Backend
+        run: |
+          docker compose up -d --build account
+
+      - name: Cleanup
+        run: docker image prune -f

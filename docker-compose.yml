@@ -1,21 +1,62 @@
+version: '3.9'
+
 services:
   frontend:
     build:
       context: ./client
       dockerfile: Dockerfile.dev
     container_name: queue_frontend_dev
+    depends_on:
+      - account
     ports:
       - "8080:80"
     restart: always
     networks:
       - queue_network
 
-  backend:
-    image: alpine
-    command: ["watch", "-n", "10", "echo hello"]
+  account:
+    build:
+      context: ./server/account
+      dockerfile: Dockerfile
+    depends_on:
+      account_db:
+        condition: service_healthy
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      SERVER_ADDR: ${SERVER_ADDR}
+      ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL}
+      REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL}
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
     networks:
       - queue_network
+
+  account_db:
+    image: postgres:16-alpine
+    container_name: account_db
     restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - account-data:/var/lib/postgresql/data
+      - ./server/account/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} && psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -tAc \"SELECT 1 FROM information_schema.tables WHERE table_name='users'\" | grep -q 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - queue_network
+
+volumes:
+  account-data:
 
 networks:
   queue_network:
