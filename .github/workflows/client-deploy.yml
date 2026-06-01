@@ -15,6 +15,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Copying .env file
+        run: cp ~/.env .env
+
       - name: Build and Update Frontend
         run: |
           docker compose up -d --build frontend
