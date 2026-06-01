@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"regexp"
 	"time"
+	"unicode"
 
 	"github.com/BalabanovA898/project/account/src/domain"
 	"github.com/BalabanovA898/project/account/src/repository/postgres"
@@ -37,6 +39,16 @@ func NewAuthUseCase(
 }
 
 func (u *AuthUseCase) Register(ctx context.Context, email, password, username string) (domain.User, domain.TokenResponse, error) {
+	// Валидация email
+	if err := validateEmail(email); err != nil {
+		return domain.User{}, domain.TokenResponse{}, err
+	}
+
+	// Валидация пароля
+	if err := validatePassword(password); err != nil {
+		return domain.User{}, domain.TokenResponse{}, err
+	}
+
 	if _, err := u.users.GetByEmail(ctx, email); err == nil {
 		return domain.User{}, domain.TokenResponse{}, domain.ErrConflict
 	} else if err != domain.ErrNotFound {
@@ -164,4 +176,53 @@ func (u *AuthUseCase) buildRefreshToken(ctx context.Context, userID string) (str
 	}
 
 	return token, nil
+}
+
+// validateEmail проверяет формат email адреса
+func validateEmail(email string) error {
+	pattern := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
+	matched, _ := regexp.MatchString(pattern, email)
+	if !matched {
+		return domain.NewValidationError("email", "invalid email format")
+	}
+	return nil
+}
+
+// validatePassword проверяет требования к паролю:
+// - длина больше 8 символов
+// - содержит большую букву
+// - содержит маленькую букву
+// - содержит специальный символ
+func validatePassword(password string) error {
+	if len(password) < 8 {
+		return domain.NewValidationError("password", "password must be at least 8 characters long")
+	}
+
+	hasUpperCase := false
+	hasLowerCase := false
+	hasSpecialChar := false
+
+	for _, char := range password {
+		if unicode.IsUpper(char) {
+			hasUpperCase = true
+		} else if unicode.IsLower(char) {
+			hasLowerCase = true
+		} else if !unicode.IsLetter(char) && !unicode.IsDigit(char) {
+			hasSpecialChar = true
+		}
+	}
+
+	if !hasUpperCase {
+		return domain.NewValidationError("password", "password must contain at least one uppercase letter")
+	}
+
+	if !hasLowerCase {
+		return domain.NewValidationError("password", "password must contain at least one lowercase letter")
+	}
+
+	if !hasSpecialChar {
+		return domain.NewValidationError("password", "password must contain at least one special character")
+	}
+
+	return nil
 }

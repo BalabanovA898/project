@@ -51,6 +51,17 @@ func writeError(w http.ResponseWriter, status int, message string) {
 }
 
 func writeUseCaseError(w http.ResponseWriter, err error) {
+	// Проверяем ValidationError
+	if ve, ok := err.(*domain.ValidationError); ok {
+		writeJSON(w, http.StatusBadRequest, map[string]any{
+			"error":  "validation failed",
+			"field":  ve.Field,
+			"detail": ve.Message,
+		})
+		return
+	}
+
+	// Проверяем другие ошибки
 	switch err {
 	case domain.ErrConflict:
 		writeError(w, http.StatusConflict, err.Error())
