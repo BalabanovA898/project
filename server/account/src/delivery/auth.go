@@ -22,16 +22,13 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, tokens, err := s.authUseCase.Register(r.Context(), req.Email, req.Password, req.Username)
+	_, tokens, err := s.authUseCase.Register(r.Context(), req.Email, req.Password, req.Username)
 	if err != nil {
 		writeUseCaseError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, map[string]any{
-		"user":  user,
-		"token": tokens,
-	})
+	writeJSON(w, http.StatusCreated, tokens)
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -50,16 +47,13 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, tokens, err := s.authUseCase.Login(r.Context(), req.Email, req.Password)
+	_, tokens, err := s.authUseCase.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		writeUseCaseError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"user":  user,
-		"token": tokens,
-	})
+	writeJSON(w, http.StatusOK, tokens)
 }
 
 func (s *Server) handleRefresh(w http.ResponseWriter, r *http.Request) {

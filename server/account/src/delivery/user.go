@@ -23,7 +23,7 @@ func (s *Server) handleUserByID(w http.ResponseWriter, r *http.Request) {
 			writeUseCaseError(w, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, user)
+		writeJSON(w, http.StatusOK, toUserPreviewDTO(user))
 	case http.MethodPatch:
 		var req struct {
 			Username    *string              `json:"username,omitempty"`
@@ -41,7 +41,7 @@ func (s *Server) handleUserByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		writeJSON(w, http.StatusOK, user)
+		writeJSON(w, http.StatusOK, toUserPreviewDTO(user))
 	default:
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
