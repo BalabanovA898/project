@@ -1,7 +1,9 @@
 package domain
 
-import "errors"
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 var (
 	ErrNotFound          = errors.New("not found")

@@ -25,8 +25,21 @@ func (s *Server) handleUserByID(w http.ResponseWriter, r *http.Request) {
 		}
 		writeJSON(w, http.StatusOK, toUserPreviewDTO(user))
 	case http.MethodPatch:
+		// Проверяем аутентификацию
+		authenticatedUserID, ok := GetUserIDFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, "user not authenticated")
+			return
+		}
+
+		// Проверяем, что пользователь может редактировать только свой профиль
+		if authenticatedUserID != id {
+			writeError(w, http.StatusForbidden, "you can only edit your own profile")
+			return
+		}
+
 		var req struct {
-			Username    *string              `json:"username,omitempty"`
+			Username    *string             `json:"username,omitempty"`
 			Preferences *domain.Preferences `json:"preferences,omitempty"`
 		}
 

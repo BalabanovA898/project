@@ -37,10 +37,13 @@ func main() {
 
 	userRepo := postgres.NewUserRepository(db)
 	tokenRepo := postgres.NewRefreshTokenRepository(db)
+	teamRepo := postgres.NewTeamRepository(db)
+
 	authUseCase := usecase.NewAuthUseCase(userRepo, tokenRepo, cfg.JWTSecret, cfg.AccessTokenTTL, cfg.RefreshTokenTTL)
 	userUseCase := usecase.NewUserUseCase(userRepo)
+	teamUseCase := usecase.NewTeamUseCase(teamRepo)
 
-	server := delivery.NewServer(authUseCase, userUseCase)
+	server := delivery.NewServer(authUseCase, userUseCase, teamUseCase, cfg.JWTSecret)
 
 	log.Printf("account service listening on %s", cfg.ServerAddr)
 	if err := http.ListenAndServe(cfg.ServerAddr, server); err != nil {
