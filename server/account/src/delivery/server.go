@@ -37,6 +37,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/auth/register", s.handleRegister)
 	s.mux.HandleFunc("/api/v1/auth/login", s.handleLogin)
 	s.mux.HandleFunc("/api/v1/auth/refresh", s.handleRefresh)
+	s.mux.HandleFunc("/api/v1/auth/validate", s.handleValidateToken)
 
 	// Protected routes
 	s.mux.HandleFunc("/api/v1/users/", s.AuthMiddleware(s.handleUserByID))
